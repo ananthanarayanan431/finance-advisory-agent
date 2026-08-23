@@ -1,0 +1,91 @@
+from datetime import UTC, datetime, timedelta
+from typing import Any, ClassVar, cast
+
+import httpx
+
+from agentdrops.resilience.circuit_breaker import call_with_breaker, get_breaker
+from agentdrops.resilience.http_retry import HTTP_RETRY
+from agentdrops.webtools.base import (
+    BaseSearchTool,
+    SearchResult,
+    parse_epoch_seconds,
+    wrap_http_errors,
+)
+
+
+class RedditSearchTool(BaseSearchTool):
+    name: ClassVar[str] = "reddit"
+
+    def __init__(
+        self,
+        client_id: str,
+        client_secret: str,
+        user_agent: str,
+        client: httpx.AsyncClient,
+        *,
+        breaker_fail_max: int = 5,
+        breaker_reset_timeout: int = 60,
+    ) -> None:
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._user_agent = user_agent
+        self._client = client
+        self._token: str | None = None
+        self._token_expires_at: datetime | None = None
+        self._breaker = get_breaker(
+            self.name, fail_max=breaker_fail_max, reset_timeout=breaker_reset_timeout
+        )
+
+    async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
+        token = await self._get_access_token()
+        async with wrap_http_errors(self.name):
+            payload = await call_with_breaker(self._breaker, self._call, query, max_results, token)
+            results: list[SearchResult] = []
+            for child in payload.get("data", {}).get("children", [])[:max_results]:
+                post = child.get("data", {})
+                permalink = post.get("permalink", "")
+                url = f"https://reddit.com{permalink}" if permalink else post.get("url", "")
+                results.append(
+                    SearchResult(
+                        tool_name=self.name,
+                        title=post.get("title") or url,
+                        url=url,
+                        snippet=(post.get("selftext") or "")[:1000],
+                        published_at=parse_epoch_seconds(post.get("created_utc")),
+                        score=post.get("score"),
+                    )
+                )
+        return results
+
+    async def _get_access_token(self) -> str:
+        if self._token and self._token_expires_at and datetime.now(UTC) < self._token_expires_at:
+            return self._token
+
+        async with wrap_http_errors(self.name, prefix="token "):
+            payload = await call_with_breaker(self._breaker, self._fetch_token)
+            self._token = payload["access_token"]
+            self._token_expires_at = datetime.now(UTC) + timedelta(
+                seconds=payload["expires_in"] - 60
+            )
+        return self._token
+
+    @HTTP_RETRY
+    async def _fetch_token(self) -> dict[str, Any]:
+        response = await self._client.post(
+            "https://www.reddit.com/api/v1/access_token",
+            auth=(self._client_id, self._client_secret),
+            data={"grant_type": "client_credentials"},
+            headers={"User-Agent": self._user_agent},
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())
+
+    @HTTP_RETRY
+    async def _call(self, query: str, max_results: int, token: str) -> dict[str, Any]:
+        response = await self._client.get(
+            "https://oauth.reddit.com/search",
+            params={"q": query, "limit": max_results, "sort": "relevance"},
+            headers={"Authorization": f"Bearer {token}", "User-Agent": self._user_agent},
+        )
+        response.raise_for_status()
+        return cast(dict[str, Any], response.json())

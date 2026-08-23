@@ -1,0 +1,7 @@
+# Foundry deployment artifacts — regenerated from casting.yaml + casting.yaml.lock by
+# `foundryctl cast`/`forge`. The two declarative files are committed; this generated output
+# is not.
+/pours/
+
+# Personal Claude Code overrides (e.g. worktree.baseRef) — not shared with the team.
+/.claude/settings.local.json

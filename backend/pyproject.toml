@@ -1,0 +1,104 @@
+[project]
+name = "agentdrops"
+version = "0.1.0"
+description = "Agentdrops market research agent backend"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.27",
+    "tenacity>=8.2",
+    "pydantic>=2.11",
+    "pydantic-settings>=2.3",
+    "pybreaker>=1.2",
+    "tornado>=6.4",
+    "langgraph>=0.2",
+    "langchain>=0.3",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "asyncpg>=0.29",
+    "sqlalchemy[asyncio]>=2.0",
+    "celery>=5.4",
+    "redis>=5.0",
+    "langgraph-checkpoint-postgres>=3.0",
+    "psycopg[binary,pool]>=3.1",
+    "openai>=1.50",
+    "opentelemetry-api>=1.27",
+    "opentelemetry-sdk>=1.27",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.27",
+    # Auto-instrumentation: FastAPI gives request spans (and continues the frontend's trace
+    # via traceparent), httpx gives outbound spans for every search-tool call.
+    "opentelemetry-instrumentation-fastapi>=0.48b0",
+    "opentelemetry-instrumentation-httpx>=0.48b0",
+    "opentelemetry-instrumentation-logging>=0.48b0",
+    # Emits GenAI-semantic-convention spans for every LangChain/LangGraph chain, LLM and tool
+    # call — prompts, model name and token counts — which is what SigNoz's LLM views read.
+    "openinference-instrumentation-langchain>=0.1.29",
+    "pypdf>=4.2",
+    "python-docx>=1.1",
+    "pgvector>=0.3",
+    "minio>=7.2",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+providers = [
+    "langchain-anthropic>=0.2",
+    "langchain-google-genai>=2.0",
+]
+db = [
+    "alembic>=1.13",
+    "psycopg2-binary>=2.9",
+]
+dev = [
+    "agentdrops[providers,db]",
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "fakeredis>=2.20",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentdrops"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = "respx.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "langchain.*",
+    "langchain_core.*",
+    "langchain_openai.*",
+    "langchain_anthropic.*",
+    "langchain_google_genai.*",
+    "langgraph.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["asyncpg.*", "alembic.*", "celery.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src", "."]

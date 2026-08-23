@@ -1,0 +1,18 @@
+apiVersion: v1alpha1
+kind: Installation
+metadata:
+  # Renamed from `signoz`. If you already ran `foundryctl cast` under the old name, tear that
+  # Installation down first (`foundryctl cast -f casting.yaml` with the old name, then remove it,
+  # or `docker compose -f signoz/stack/compose.yaml down`) before casting this one —
+  # otherwise foundryctl treats this as a brand-new Installation and the old one is orphaned.
+  name: agentdrops-observability
+spec:
+  deployment:
+    flavor: compose
+    mode: docker
+  # The MCP server is disabled by default; we enable it so Claude Code (and any other
+  # MCP client) can query traces/metrics/logs directly. Serves HTTP on :8000 — which is
+  # why the app backend was moved to :8001, see backend/README.md.
+  mcp:
+    spec:
+      enabled: true
