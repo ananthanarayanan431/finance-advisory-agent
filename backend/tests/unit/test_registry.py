@@ -17,6 +17,7 @@ def _settings() -> Settings:
         newsapi_key="news-test",
         reddit_client_id="reddit-id",
         reddit_client_secret="reddit-secret",
+        edgar_identity="Test Bot test@example.com",
         database_url="postgresql+asyncpg://u:p@localhost:5432/agentdrops",
         redis_url="redis://localhost:6379/0",
         minio_endpoint="localhost:9000",

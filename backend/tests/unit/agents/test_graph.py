@@ -13,6 +13,24 @@ async def test_build_market_researcher_compiles_with_the_given_checkpointer() ->
     assert graph.checkpointer is checkpointer
 
 
+async def test_build_market_researcher_always_wires_tavily_exa_and_edgar(monkeypatch) -> None:
+    captured_tools = {}
+
+    def fake_build_research_graph(settings, tools):
+        captured_tools["tools"] = tools
+        from agentdrops.agents.research.graph import build_research_graph as real
+        return real(settings, tools)
+
+    monkeypatch.setattr(
+        "agentdrops.agents.graph.build_research_graph", fake_build_research_graph
+    )
+    async with httpx.AsyncClient() as client:
+        build_market_researcher(make_settings(), client, InMemorySaver())
+
+    tool_names = {t.name for t in captured_tools["tools"]}
+    assert {"tavily_search", "exa_search", "edgar_search", "think_tool"} <= tool_names
+
+
 async def test_use_context_hub_true_adds_context_hub_search_tool(monkeypatch) -> None:
     captured_tools = {}
 

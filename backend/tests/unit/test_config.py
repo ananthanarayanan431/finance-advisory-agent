@@ -11,6 +11,7 @@ def test_settings_loads_required_fields_from_env(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setenv("NEWSAPI_KEY", "news-test")
     monkeypatch.setenv("REDDIT_CLIENT_ID", "reddit-id")
     monkeypatch.setenv("REDDIT_CLIENT_SECRET", "reddit-secret")
+    monkeypatch.setenv("EDGAR_IDENTITY", "Test Bot test@example.com")
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/agentdrops")
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
     monkeypatch.setenv("MINIO_ENDPOINT", "localhost:9000")
@@ -27,6 +28,7 @@ def test_settings_loads_required_fields_from_env(monkeypatch: pytest.MonkeyPatch
     assert settings.reddit_client_id == "reddit-id"
     assert settings.reddit_client_secret == "reddit-secret"
     assert settings.reddit_user_agent == "agentdrops-market-research/0.1"
+    assert settings.edgar_identity == "Test Bot test@example.com"
     assert settings.log_level == "INFO"
     assert settings.embedding_model == "text-embedding-3-small"
     assert settings.contexthub_chunk_size == 1000
@@ -40,6 +42,7 @@ def test_settings_missing_required_field_raises(monkeypatch: pytest.MonkeyPatch)
         "NEWSAPI_KEY",
         "REDDIT_CLIENT_ID",
         "REDDIT_CLIENT_SECRET",
+        "EDGAR_IDENTITY",
         "DATABASE_URL",
         "REDIS_URL",
         "MINIO_ENDPOINT",
@@ -60,6 +63,7 @@ def _base_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("NEWSAPI_KEY", "news-test")
     monkeypatch.setenv("REDDIT_CLIENT_ID", "reddit-id")
     monkeypatch.setenv("REDDIT_CLIENT_SECRET", "reddit-secret")
+    monkeypatch.setenv("EDGAR_IDENTITY", "Test Bot test@example.com")
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@localhost:5432/agentdrops")
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/0")
     monkeypatch.setenv("MINIO_ENDPOINT", "localhost:9000")

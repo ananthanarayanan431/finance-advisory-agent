@@ -1,10 +1,12 @@
-"""Tools bound to agent LLM calls: reflection, delegation signals, and the Tavily search adapter."""
+"""Tools bound to agent LLM calls: reflection, delegation signals, and the Tavily/Exa search
+adapters."""
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool, tool
 from pydantic import BaseModel, Field
 
 from agentdrops.agents.research.methods import run_search_pipeline
+from agentdrops.webtools.exa import ExaSearchTool
 from agentdrops.webtools.tavily import TavilySearchTool
 
 
@@ -34,6 +36,27 @@ def make_tavily_tool(tavily: TavilySearchTool, llm: BaseChatModel) -> BaseTool:
         return await run_search_pipeline(tavily, llm, query, max_results)
 
     return tavily_search
+
+
+def make_exa_tool(exa: ExaSearchTool, llm: BaseChatModel) -> BaseTool:
+    """Adapt the existing resilient `ExaSearchTool` into a LangChain tool named `exa_search`.
+
+    Same shape as `make_tavily_tool`: delegates to the shared search -> summarize -> format
+    pipeline in `agents/research/methods.py`, and to `ExaSearchTool.search()` for the HTTP call
+    itself (retry + circuit breaker already applied there). No HTTP or summarization logic here.
+    """
+
+    @tool
+    async def exa_search(query: str, max_results: int = 5) -> str:
+        """Search the web via Exa for finance-focused sources on `query`.
+
+        Phrase `query` to surface financial coverage specifically: include the company name or
+        ticker, sector, or macro term, and prefer financial-news/filing/analyst-style phrasing
+        (e.g. "NVDA Q3 earnings guidance data center revenue") over a generic topic query.
+        """
+        return await run_search_pipeline(exa, llm, query, max_results)
+
+    return exa_search
 
 
 class ConductResearch(BaseModel):

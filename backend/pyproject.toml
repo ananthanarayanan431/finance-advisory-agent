@@ -39,6 +39,7 @@ dependencies = [
     "pgvector>=0.3",
     "minio>=7.2",
     "python-multipart>=0.0.9",
+    "edgartools>=5.0",
 ]
 
 [project.optional-dependencies]
@@ -96,6 +97,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["asyncpg.*", "alembic.*", "celery.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["edgar.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

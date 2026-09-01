@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     reddit_client_id: str
     reddit_client_secret: str
     reddit_user_agent: str = "agentdrops-market-research/0.1"
+    edgar_identity: str
+    """SEC EDGAR fair-access requires every request to identify a real requester as
+    "Name email@domain" (see agents/edgar/client.py::_ensure_identity). Not an API key —
+    SEC EDGAR itself is unauthenticated and free."""
 
     database_url: str
     redis_url: str

@@ -1,5 +1,11 @@
 from agentdrops.agents.schemas import Summary
-from agentdrops.agents.tools import ConductResearch, ResearchComplete, make_tavily_tool, think_tool
+from agentdrops.agents.tools import (
+    ConductResearch,
+    ResearchComplete,
+    make_exa_tool,
+    make_tavily_tool,
+    think_tool,
+)
 from agentdrops.webtools.base import SearchResult
 from tests.unit.agents.conftest import FakeChatModel
 
@@ -42,6 +48,44 @@ async def test_tavily_search_adapter_formats_summarized_results(monkeypatch: obj
     assert "SOURCE 1" in output
     assert "https://example.com/ev" in output
     assert "EV charging demand is rising." in output
+
+
+class _FakeExa:
+    name = "exa"
+
+    def __init__(self, results: list[SearchResult]) -> None:
+        self._results = results
+
+    async def search(self, query: str, max_results: int = 5) -> list[SearchResult]:
+        assert query == "solid-state battery manufacturers"
+        return self._results
+
+
+async def test_exa_search_adapter_formats_summarized_results(monkeypatch: object) -> None:
+    monkeypatch.setattr(  # type: ignore[attr-defined]
+        "agentdrops.agents.research.methods.get_stream_writer", lambda: lambda _payload: None
+    )
+
+    results = [
+        SearchResult(
+            tool_name="exa",
+            title="Solid-state battery makers overview",
+            url="https://example.com/battery",
+            snippet="Several manufacturers are scaling solid-state battery production.",
+        )
+    ]
+    llm = FakeChatModel(
+        [Summary(summary="Solid-state battery production is scaling up.", key_excerpts="")]
+    )
+    tool = make_exa_tool(_FakeExa(results), llm)  # type: ignore[arg-type]
+
+    output = await tool.ainvoke(
+        {"query": "solid-state battery manufacturers", "max_results": 5}
+    )
+
+    assert "SOURCE 1" in output
+    assert "https://example.com/battery" in output
+    assert "Solid-state battery production is scaling up." in output
 
 
 def test_conduct_research_and_research_complete_schemas() -> None:
